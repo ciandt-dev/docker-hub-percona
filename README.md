@@ -1,260 +1,179 @@
-# CI&T Percona (MySQL) Docker image(s)
+### CI&T Acquia Memcached mimic Docker base image
 
-This is the source code of [CI&T Percona (MySQL) Docker image(s)](https://hub.docker.com/r/ciandtsoftware/percona/) hosted at [Docker hub](https://hub.docker.com/).
+This Docker image intends to be containerized mimic solution of Acquia Memcached environment.
 
-It contents the source code for building the publicly accessible Docker image(s) and some scripts to easy maintain and update its code.
+The source code is available under GPLv3 at Bitbucket in this [link](https://bitbucket.org/ciandt_it/docker-hub-memcached).
 
-By utilizing Docker technologies, that already provides an easy way of spinning up new environments along with its dependecies. This image can speed up developers which different backgrounds and equipments to create quickly a new local environment allowing them to easily integrate in automated tests and deployment pipelines.
+Our intent is to have a Docker container that mimics Acquia Memcached environment with the same version of softwares and OS.
 
-At this moment we have the following version(s)
+Utilizing Docker technologies that already provides an easy way of spinning up new environments and its dependecies, this image can speed-up developers which different backgrounds and equipments to have a fast local environment allowing them to easily integrate in automated tests and deployment pipelines.
 
-## [Acquia](#acquia)
+Keeping it short, this image contains the same working set of Ubuntu and Apache Memcached Acquia utilizes.
 
-Our intent is to be a Docker container that mimics Percona (MySQL) running on Acquia environment with the same version of softwares, packages, modules and its underlying operating system.
+### [*Quick Start*](#quickstart)
 
-Acquia publishes a table with its platform infrastructure information on the link: https://docs.acquia.com/cloud/arch/tech-platform
-
-These images will have the following name pattern: __acquia-*YYYY-MM-DD*__
-
-#### [*Bundled software versions*](#software-versions)
-
-These are the currently software versions bundled in the image(s) by tag.
-
-* acquia-2016-11-24
-  * Debian Jessie
-  * Percona (MySQL) 5.5.53
-
-* * *
-
-# [Requirements](#requirements)
-
-Since Docker at the moment was designed to run natively just on __Linux__, we do consider this as __premisse__.
-
-And also, before proceeding please check the __required__ packages below:
-
- - docker engine => 1.12
- - make
- - grep
-
-* * *
-
-# [Quick Start](#quickstart)
-
-__*Clone the desired project code version*__
+__Download the image__
 
 ```
-DESIRED_VERSION="acquia-2016-11-24"
-
-git clone \
-  --branch "${DESIRED_VERSION}" \
-  git@github.com:ciandt-dev/docker-hub-percona.git
+docker pull ciandtsoftware/memcached:acquia-2016-11-08
 ```
 
-__*Build, run and test*__
+__Run a container__
 
 ```
-make
+docker run \
+  --name myContainer \
+  --detach \
+  ciandtsoftware/memcached:acquia-2016-11-08
+```
+
+__Check running containers__
+
+```
+docker ps --all
 ```
 
 * * *
 
-## [How-to](#how-to)
+### [Software Versions](#software-versions)
 
-It is possible to perform any of the actions described below:
+These are the currently versions bundled in this image.
 
-### [*Build*](#how-to-build)
+Already installed
 
-```
-make build
-```
-
-### [*Run*](#how-to-run)
-
-```
-make run
-```
-
-### [*Test*](#how-to-test)
-
-```
-make test
-```
-
-### [*Debug*](#how-to-debug)
-
-```
-make debug
-```
-
-### [*Shell access*](#how-to-shell)
-
-```
-make shell
-```
-
-### [*Clean*](#how-to-clean)
-
-```
-make clean
-```
-
-### [*Clean All*](#how-to-clean-all)
-
-```
-make clean-all
-```
-
-### [*All - Build / Run / Test*](#how-to-all)
-
-```
-make all
-```
-
-<sub>*or simply*</sub>
-
-```
-make
-```
+* Ubuntu 12.04.5
+* Memcached 1.4.13
+* Dumb-init 1.2.0
 
 * * *
 
-## [Deep diving](#deep-dive)
+### [Running standalone](#running-standalone)
 
-### [*.env file*](#env)
+If you just need the container there is a snippet that can help running in standalone mode.
 
-As this little framework was designed to be re-utilized on other Docker images it contains a __.env__ file provided at repository root. This file has some self-described variables and they are used by all scripts to perform its own tasks, just inspect the .env file to check them out.
+```
+# define variables
+DOCKER_CONTAINER_NAME="myContainer"
+DOCKER_IMAGE="memcached:acquia-2016-11-08"
 
-The only one that is important to mention is:
+# run your container
+docker run \
+  --name "${DOCKER_CONTAINER_NAME}" \
+  --detach \
+  "${DOCKER_IMAGE}"
+```
 
-> __ENVIRONMENT__
+After run, you can inquiry Docker service and get the IP address and port of your newly running container named __myContainer__ by using the following command:
 
-Environment default value is always __local__. It is possible to change to any desired string value, this is just an ordinary alias to load one of the configuration files that can exist in __conf__ folder.
+```
+docker inspect --format '{{ .NetworkSettings.IPAddress }} myContainer'
+```
 
-Example, if you change it to:
+Let's suppose that the returned IP address was __172.17.0.2__.
+Since Memcached standard port is __11211__, just open a terminal and try to get the stats: access:
 
-> ENVIRONMENT="__dev__"
+```
+echo "stats" | nc 172.17.0.2 11211
+```
 
-When you __run__ (*not build*) the container will load variables from:
-
-> conf/*$APP_NAME*.__dev__.env
-
-This is an easy way to inject variables when developing a new script and testing multi-environment solution.
+Apache Memcached stats result should be returned perfectly.
 
 * * *
 
-### [*Build process*](#build-process)
+### [Running in Docker-Compose](#running-docker-compose)
 
-This process will execute instructions in Dockerfile that is inside __app__ folder.
-Dockerfile will have several environment variables for the __build__ step, when you need to modify them please look for any line starting with __ENV__. More information about Dockerfile ENV (environment variables) is available at this [link](https://docs.docker.com/engine/reference/builder/#/env).
+Since a project is not going to use solely this container, it may need a Docker-Compose file.
+
+Just to exercise, follow an example of this running with __Apache/PHP__ and also both behind a __Nginx__ proxy.
+
+Create a new folder and fill with these 3 files and respective folders;
+
+##### [__conf/acquia.local.env__](#acquia-env)
+
+```
+## Nginx proxy configuration
+# https://hub.docker.com/r/jwilder/nginx-proxy/
+VIRTUAL_HOST=mySite.local
+```
+
+##### [__conf/memcached.local.env__](#acquia-env)
+
+```
+## Nginx proxy configuration
+# https://hub.docker.com/r/jwilder/nginx-proxy/
+VIRTUAL_HOST=myMemcached.local
+VIRTUAL_PORT=11211
+```
+
+##### [__docker-compose.yml__](#docker-compose)
+
+```
+memcached:
+  image: ciandtsoftware/memcached:acquia-2016-11-08
+  container_name: memcached
+  env_file: ../conf/memcached.local.env
+
+acquia:
+  build: ./acquia
+  container_name: acquia
+  env_file: ../conf/acquia.local.env
+  links:
+    - memcached
+
+nginx:
+  image: jwilder/nginx-proxy:latest
+  container_name: nginx
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+  ports:
+    - "80:80"
+    - "443:443"
+```
+
+Then just spin-up your Docker-Compose with the command:
+
+```
+docker-compose up -d
+```
+
+Inspect Nginx container IP address:
+
+```
+docker inspect \
+        --format \
+        "{{.NetworkSettings.Networks.bridge.IPAddress }}" \
+        "nginx"
+```
+
+Use the IP address to update __hosts__ file. Let's suppose that was 172.17.0.2.
+
+Then, add the entries to __/etc/hosts__.
+
+> 172.17.0.2 acquia.local
+> 172.17.0.2 memcached.local
+
+And now, try to access in terminal
+
+```
+echo "stats" | nc memcached.local 11211
+```
+
+Voilà!
+Your project now have Memcached, Apache/PHP and Nginx up and running.
+\\o/
 
 * * *
 
-### [*Run process*](#run-process)
+### [Contributing](#contributing)
 
-As described in <a name="env">.env file</a> section, run will load environment variables from an existing file inside __conf folder__.
-This approach is better describe in official Docker docs in the [link](https://docs.docker.com/compose/env-file/).
-
-* * *
-
-### [*Debug and Shell access*](#debug-shell)
-
-Wheter there is a need of __debuging__ or __inspecting__ inside the container there are two options to help:
-
-```
-make debug
-```
-
-and
-
-```
-make shell
-```
-
-The first one runs the container and attaches __*stderr*__ and __*stdout*__ to current terminal and prints relevant information.
-
-Second one runs the container and connects to its shell (bash). So, you can inspect files, configurations and the whole container environment.
+If you want to contribute, suggest improvements and report issues, please go to our [Bitbucket repository](https://bitbucket.org/ipinatti_cit/docker-hub-memcached).
 
 * * *
 
-### [*Testing*](#testing)
-
-After any modification we strongly recommend to run tests against the container to check if everything is running smoothly.
-
-This can be done with the command:
-
-```
-make test
-```
-
-These are simple tests at the moment, therefore, very usefull.
-
-* * *
-
-### [*All steps*](#all-steps)
-
-Now that you __already__ __read__ the previous steps, you are aware of each function. Knowing that, the easisest way of wrapping up everything together is to just run:
-
-```
-make
-```
-
-This command will __build__, __run__ and __test__ your recently created container.
-
-### [*Cleaning up*](#cleaning-up)
-
-Since Docker generates tons of layers that can fast outgrow your hard drive. After that you have finished any modification we encourage to clean up your environment.
-
-There are two commands for this task:
-
-```
-make clean
-```
-
-It stops the running container, removes it and deletes its Docker image.
-This particular one is very usefull when you are performing changes and you need to rebuild your container many times to check for modifications.
-In addition, you can combine with __make shell__ for instance, like in this example:
-
-```
-make clean && make shell
-```
-
-And the second one is:
-
-```
-make clean-all
-```
-
-Actually, this one calls __make clean__ first, and then removes Docker __dangling images and volumes__.
-More information about dangling images/volumes can be found at this [link](https://docs.docker.com/engine/reference/commandline/images/).
-
-* * *
-
-## [User Feedback](#user-feedback)
-
-### [*Issues*](#issues)
-
-If you have problems, bugs, issues with or questions about this, please reach us in [Github issues page](https://github.com/ciandt-dev/docker-hub-percona/issues).
-
-__Needless to say__, please do a little research before posting.
-
-### [*Contributing*](#contributing)
-
-We gladly invite you to contribute fixes, new features, or updates, large or small; we are always thrilled to receive pull requests, and do our best to process them as fast as we can.
-
-Before you start to code, we recommend discussing your plans through a GitHub issue, especially for more ambitious contributions. This gives other contributors a chance to point you in the right direction, give you feedback on your design, and help you find out if someone else is working on the same thing.
-
-### [*Documentation*](#documentation)
-
-There are __two parts__ of the documentation.
-
-First, in the master branch, is this README.MD. It explains how this little scripts framework work and it is published on [Github page](https://github.com/ciandt-dev/docker-hub-percona).
-
-Second, in each image version there is an additional README.MD file that explains how to use that specific Docker image version itself. __*Latest version*__ is always the one seen on [Docker Hub page](https://hub.docker.com/r/ciandtsoftware/percona).
-
-We strongly encourage reading it too!
-
-* * *
+Please feel free to drop a message in the comments section.
 
 Happy coding, enjoy!!
 
 "We develop people before we develop software" - Cesar Gon, CEO
+
+* * *
