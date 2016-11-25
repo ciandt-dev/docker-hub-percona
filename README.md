@@ -21,8 +21,8 @@ These images will have the following name pattern: __acquia-*YYYY-MM-DD*__
 These are the currently software versions bundled in the image(s) by tag.
 
 * acquia-2016-11-24
-  * Debian Jessie
-  * Percona (MySQL) 5.5.53
+  * Ubuntu 12.04.5
+  * Percona (MySQL) 5.5.24
 
 * * *
 
