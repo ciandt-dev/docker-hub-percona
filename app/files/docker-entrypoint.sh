@@ -1,4 +1,10 @@
 #!/bin/bash
+
+: ' Imported from:
+		https://github.com/docker-library/percona/blob/c5ca3f7af21b68a093bdd4f8bdcc7a93cd8d26de/5.5/docker-entrypoint.sh
+
+	'
+
 set -eo pipefail
 shopt -s nullglob
 
