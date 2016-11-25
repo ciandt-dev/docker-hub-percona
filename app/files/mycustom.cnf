@@ -1,0 +1,10 @@
+# Generated /etc/mysql/conf.d/mycustom.cnf: MySQL custom
+# settings updated by fields-config-db, can be adjusted
+# for this server like so:
+#   fields-provision.php --set-server-config ded-2:my.cnf:join_buffer_size:4M
+
+
+[mysqld]
+max_heap_table_size = 32M
+tmp_table_size = 32M
+query_cache_size = 40M

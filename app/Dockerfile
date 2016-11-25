@@ -2,7 +2,7 @@ FROM ubuntu:12.04.5
 
 # define Docker image label information
 LABEL com.ciandt.vendor="CI&T Software SA" \
-      com.ciandt.release-date="2016-11-08" \
+      com.ciandt.release-date="2016-11-24" \
       com.ciandt.maintainers.1="Ivan Pinatti - @ivan_pinatti" \
       com.ciandt.maintainers.2="Thomas Bryan - @thobryan"
 
@@ -29,6 +29,29 @@ RUN readonly APT_SOURCES="/etc/apt/sources.list" \
 # upgrade Ubuntu packages, install security updates and required packages
 RUN readonly UBUNTU_PACKAGES=" \
                 curl \
+                ca-certificates \
+                binutils \
+                cpp \
+                cpp-4.6 \
+                gcc \
+                gcc-4.6 \
+                libaio1 \
+                libc-dev-bin \
+                libc6-dev \
+                libdbi-perl \
+                libgmp10 \
+                libgomp1 \
+                libmpc2 \
+                libmpfr4 \
+                libnet-daemon-perl \
+                libplrpc-perl \
+                libquadmath0 \
+                linux-libc-dev \
+                manpages \
+                manpages-dev \
+                psmisc \
+                zlib1g-dev \
+                pwgen \
                 " \
     && apt-get update \
     && apt-get upgrade --assume-yes \
@@ -38,60 +61,170 @@ RUN readonly UBUNTU_PACKAGES=" \
     # remove apt cache in order to improve Docker image size
     && apt-get clean
 
-## Memcached
+## Percona
 # environment variables
-ENV MEMCACHED_VERSION 1.4.13
+ENV PERCONA_MAJOR_VERSION 5.5
+ENV PERCONA_MINOR_VERSION 24
+ENV PERCONA_RELEASE_VERSION 26.0
+ENV PERCONA_USER mysql
+ENV PERCONA_UID 3306
+ENV GOSU_VERSION 1.7
 
-# declare required packages
-RUN readonly MEMCACHED_PACKAGES=" \
-              memcached=${MEMCACHED_VERSION}-* \
-              " \
-    # install packages
-    && apt-get install \
-                --no-install-recommends \
-                --assume-yes \
-                ${MEMCACHED_PACKAGES} \
-    # remove apt cache in order to improve Docker image size
-    && apt-get clean
+# create group
+RUN groupadd \
+      --system \
+      --gid ${PERCONA_UID} \
+      ${PERCONA_USER} \
+    # create user and add to group
+    && useradd \
+        --system \
+        --uid ${PERCONA_UID} \
+        --gid ${PERCONA_USER} \
+        ${PERCONA_USER}
 
-## DUMB-init
-# more information at: https://github.com/Yelp/dumb-init
-
-# environment variables
-ENV DUMB_INIT_VERSION 1.2.0
-
-# download
-RUN mkdir \
-      --parents \
-      /tmp/dumb-init \
-    && cd /tmp/dumb-init \
+# add gosu for easy step-down from root
+RUN curl \
+      --silent \
+      --show-error \
+      --location \
+      --output \
+        /usr/local/bin/gosu \
+      "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" \
     && curl \
-        --silent \
-        --show-error \
-        --location \
-        --remote-name \
-        https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_amd64.deb \
-    # install
+      --silent \
+      --show-error \
+      --location \
+      --output \
+        /usr/local/bin/gosu.asc \
+      "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" \
+  	&& export GNUPGHOME="$(mktemp -d)" \
+  	&& gpg \
+      --keyserver \
+        ha.pool.sks-keyservers.net \
+      --recv-keys \
+        B42F6819007F00F88E364FD4036A9C25BF357DD4 \
+  	&& gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
+  	&& rm --recursive "$GNUPGHOME" /usr/local/bin/gosu.asc \
+  	&& chmod +x /usr/local/bin/gosu \
+  	&& gosu nobody true
+
+# create temp folder
+RUN mkdir --parents /tmp/percona \
+    && cd /tmp/percona \
+    # download Percona installation files
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/libmysqlclient-dev_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/libmysqlclient18-dev_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/libmysqlclient18_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/percona-server-client-${PERCONA_MAJOR_VERSION}_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/percona-server-client_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/percona-server-common-${PERCONA_MAJOR_VERSION}_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/percona-server-server-${PERCONA_MAJOR_VERSION}_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/percona-server-server_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    && curl \
+      --silent \
+      --show-error \
+      --location \
+      --remote-name \
+      https://www.percona.com/downloads/Percona-Server-${PERCONA_MAJOR_VERSION}/Percona-Server-${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-${PERCONA_RELEASE_VERSION}/deb/precise/x86_64/percona-server-test-${PERCONA_MAJOR_VERSION}_${PERCONA_MAJOR_VERSION}.${PERCONA_MINOR_VERSION}-rel${PERCONA_RELEASE_VERSION}-256.precise_amd64.deb \
+    # configure package installation
+    && { \
+    		echo percona-server-server-$PERCONA_MAJOR percona-server-server/root_password password 'unused'; \
+    		echo percona-server-server-$PERCONA_MAJOR percona-server-server/root_password_again password 'unused'; \
+    	  } | debconf-set-selections \
+    # install Percona
     && dpkg \
         --install \
-        dumb-init_${DUMB_INIT_VERSION}_amd64.deb \
-    # remove temp folder
+        *.deb \
+    # clean up files
     && cd / \
     && rm \
-        --force \
         --recursive \
-        /tmp/dumb-init
+        --force \
+        /tmp/percona
+
+# copy Percona configuration file
+COPY files/my.cnf /etc/mysql/my.cnf
+
+# Acquia specifics
+COPY files/repl.cnf /etc/mysql/conf.d/repl.cnf
+COPY files/mycustom.cnf /etc/mysql/conf.d/mycustom.cnf
+
+# purge and re-create /var/lib/mysql with appropriate ownership
+RUN rm \
+      --recursive \
+      --force \
+      /var/lib/mysql \
+    && mkdir --parents \
+        /var/lib/mysql \
+        /var/run/mysqld \
+        /mnt/tmp/mysql \
+    && chown --recursive \
+        ${PERCONA_USER}:${PERCONA_USER} \
+        /var/lib/mysql \
+        /var/run/mysqld \
+        /mnt/tmp/mysql \
+    # ensure that /var/run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
+    && chmod 777 /var/run/mysqld
 
 ## Docker specifics
-# expose Memcached service port
-EXPOSE 11211
-
-# drop back to the regular Memcached user - good practice
-USER memcache
+# expose service port
+EXPOSE 3306
 
 # change workdir
 WORKDIR /
 
 # docker entrypoint/cmd configuration
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["memcached"]
+COPY files/docker-entrypoint.sh /usr/local/bin/
+RUN ln \
+      --symbolic \
+      --force \
+      usr/local/bin/docker-entrypoint.sh \
+      / # backwards compatibity
+RUN mkdir --parents /docker-entrypoint-initdb.d
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["mysqld"]
+
+# drop back to the regular Percona user - good practice
+USER ${PERCONA_USER}
+
+VOLUME ["/var/lib/mysql", "/var/log/mysql"]
