@@ -204,10 +204,7 @@ RUN rm \
         /var/run/mysqld \
         /mnt/tmp/mysql \
     # ensure that /var/run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
-    && chmod 777 \
-        /var/lib/mysql \
-        /var/run/mysqld \
-        /mnt/tmp/mysql
+    && chmod 777 /var/run/mysqld
 
 ## Docker specifics
 # expose service port
@@ -226,8 +223,4 @@ RUN ln \
 RUN mkdir --parents /docker-entrypoint-initdb.d
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["mysqld"]
-
-# drop back to the regular Percona user - good practice
-USER ${PERCONA_USER}
-
 VOLUME ["/var/lib/mysql", "/var/log/mysql"]
