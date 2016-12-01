@@ -78,13 +78,13 @@ docker inspect --format '{{ .NetworkSettings.IPAddress }} myContainer'
 ```
 
 Let's suppose that the returned IP address was __172.17.0.2__.
-Since Memcached standard port is __11211__, just open a terminal and try to get the stats: access:
+Since Percona standard port is __3306__, just open a terminal and try to get the stats: access:
 
 ```
-echo "stats" | nc 172.17.0.2 11211
+echo 'SHOW VARIABLES LIKE "%version%";' | mysql --host=172.17.0.2 --user=root --password=admin
 ```
 
-Apache Memcached stats result should be returned perfectly.
+Percona (MySQL) version information should be returned perfectly.
 
 * * *
 
@@ -92,50 +92,24 @@ Apache Memcached stats result should be returned perfectly.
 
 Since a project is not going to use solely this container, it may need a Docker-Compose file.
 
-Just to exercise, follow an example of this running with __Apache/PHP__ and also both behind a __Nginx__ proxy.
+Just to exercise, follow an example of this running with __Apache/PHP__.
 
-Create a new folder and fill with these 3 files and respective folders;
-
-#### [__*conf/php.local.env*__](#php-env)
-
-```
-## Nginx proxy configuration
-# https://hub.docker.com/r/jwilder/nginx-proxy/
-VIRTUAL_HOST=mySite.local
-```
-
-#### [__*conf/percona.local.env*__](#percona-env)
-
-```
-## Nginx proxy configuration
-# https://hub.docker.com/r/jwilder/nginx-proxy/
-VIRTUAL_HOST=myPercona.local
-VIRTUAL_PORT=11211
-```
+Create a new folder and a Docker compose file with the content below;
 
 #### [__*docker-compose.yml*__](#docker-compose)
 
 ```
-memcached:
-  image: ciandtsoftware/memcached:percona-latest
-  container_name: memcached
-  env_file: ../conf/memcached.local.env
+percona:
+  image: ciandtsoftware/percona:acquia-latest
+  container_name: percona
+  env_file: ../conf/percona.local.env
 
 php:
   image: ciandtsoftware/php:acquia-latest
   container_name: php
   env_file: ../conf/php.local.env
   links:
-    - memcached
-
-nginx:
-  image: jwilder/nginx-proxy:latest
-  container_name: nginx
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-  ports:
-    - "80:80"
-    - "443:443"
+    - percona
 ```
 
 Then just spin-up your Docker-Compose with the command:
@@ -144,30 +118,36 @@ Then just spin-up your Docker-Compose with the command:
 docker-compose up -d
 ```
 
-Inspect Nginx container IP address:
+Inspect Apache/PHP container IP address:
 
 ```
 docker inspect \
         --format \
         "{{.NetworkSettings.Networks.bridge.IPAddress }}" \
-        "nginx"
+        "php"
 ```
 
-Use the IP address to update __hosts__ file. Let's suppose that was 172.17.0.2.
-
-Then, add the entries to __/etc/hosts__.
-
-> 172.17.0.2 php.local
-> 172.17.0.2 memcached.local
-
-And now, try to access in terminal
+Connect to your Apache/PHP container shell
 
 ```
-echo "stats" | nc memcached.local 11211
+docker exec \
+        --interactive \
+        --tty \
+        php \
+        bash
+```
+
+Then, try to use MySQL client to connect to your Percona database.
+
+```
+mysql \
+  --host=percona \
+  --user=root \
+  --password=admin
 ```
 
 Voilà!
-Your project now have Memcached, Apache/PHP and Nginx up and running.
+Your project now have Percona and Apache/PHP up and running.
 \\o/
 
 * * *
@@ -176,7 +156,7 @@ Your project now have Memcached, Apache/PHP and Nginx up and running.
 
 ### [*Issues*](#issues)
 
-If you have problems, bugs, issues with or questions about this, please reach us in [Github issues page](https://github.com/ciandt-dev/docker-hub-memcached/issues).
+If you have problems, bugs, issues with or questions about this, please reach us in [Github issues page](https://github.com/ciandt-dev/docker-hub-percona/issues).
 
 __Needless to say__, please do a little research before posting.
 
@@ -190,9 +170,9 @@ Before you start to code, we recommend discussing your plans through a GitHub is
 
 There are __two parts__ of the documentation.
 
-First, in the master branch, is this README.MD. It explains how this little scripts framework work and it is published on [Github page](https://github.com/ciandt-dev/docker-hub-memcached).
+First, in the master branch, is this README.MD. It explains how this little scripts framework work and it is published on [Github page](https://github.com/ciandt-dev/docker-hub-percona).
 
-Second, in each image version there is an additional README.MD file that explains how to use that specific Docker image version itself. __*Latest version*__ is always the one seen on [Docker Hub page](https://hub.docker.com/r/ciandtsoftware/memcached).
+Second, in each image version there is an additional README.MD file that explains how to use that specific Docker image version itself. __*Latest version*__ is always the one seen on [Docker Hub page](https://hub.docker.com/r/ciandtsoftware/percona).
 
 We strongly encourage reading both!
 
