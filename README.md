@@ -37,9 +37,9 @@ Since Docker at the moment was designed to run natively just on __Linux__, we do
 
 And also, before proceeding please check the __required__ packages below:
 
- - docker engine => 1.12
+ - Docker Engine => 1.12
+ - MySQL client => 5.5
  - make
- - grep
 
 * * *
 
