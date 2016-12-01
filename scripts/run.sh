@@ -41,16 +41,16 @@ if [ $? -eq 0 ]; then
 
   "${CAT}" << EOM
 
-  Memcached is avaiable at:
-  ${DOCKER_CONTAINER_IP}:11211
+  Percona is avaiable at:
+  ${DOCKER_CONTAINER_IP}:3306
 
   If you prefer to use hostname instead, please add it to your hosts file
   Just copy and paste the command below in your terminal or add it manually later
 
-  sudo bash -c 'echo ${DOCKER_CONTAINER_IP} memcached.local >> /etc/hosts'
+  sudo bash -c 'echo "${DOCKER_CONTAINER_IP} percona.local" >> /etc/hosts'
 
   THEN, will be able to access at:
-  memcached.local:11211
+  percona.local:3306
 
   _______________________________________________________________________________
 
