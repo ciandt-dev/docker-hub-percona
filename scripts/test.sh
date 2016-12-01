@@ -12,7 +12,7 @@ set -e  #   errexit  - Abort script at first error, when a command exits with no
 
 # binaries
 DOCKER=$(which docker)
-NC=$(which nc)
+MYSQL=$(which mysql)
 
 # simple test start
 echo "  _______________________________________________________________________________"
@@ -32,17 +32,17 @@ readonly DOCKER_CONTAINER_IP=$(\
 set +e
 
 # connect to container and gather information
-echo "version" | "${NC}" "${DOCKER_CONTAINER_IP}" "11211" > /dev/null
+echo 'SHOW VARIABLES LIKE "%version%";' | "${MYSQL}" --host="${DOCKER_CONTAINER_IP}" --user=root --password=admin > /dev/null 2>&1
 
 # check if was OK
 if [ $? -eq 0 ]; then
 
-  echo -e "\n  Docker container ${DOCKER_CONTAINER_NAME} service port 11211: OK!"
+  echo -e "\n  Docker container ${DOCKER_CONTAINER_NAME} service port 3306: OK!"
   echo -e "\n  _______________________________________________________________________________\n"
 
 else
 
-  echo -e "\n  ERROR! Docker container ${DOCKER_CONTAINER_NAME} service port 11211: NOK!"
+  echo -e "\n  ERROR! Docker container ${DOCKER_CONTAINER_NAME} service port 3306: NOK!"
   echo -e "\n  _______________________________________________________________________________\n"
   exit 1
 
