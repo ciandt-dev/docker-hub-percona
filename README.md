@@ -35,7 +35,7 @@ __*Deprecated*__
 __*Download the image*__
 
 ```
-docker pull ciandtsoftware/percona:acquia-latest
+docker pull ciandt/percona:acquia-latest
 ```
 
 __*Run a container*__
@@ -44,7 +44,7 @@ __*Run a container*__
 docker run \
   --name myContainer \
   --detach \
-  ciandtsoftware/percona:acquia-latest
+  ciandt/percona:acquia-latest
 ```
 
 __*Check running containers*__
@@ -62,7 +62,7 @@ If you just need the container there is a snippet that can help running in stand
 ```
 # define variables
 DOCKER_CONTAINER_NAME="myContainer"
-DOCKER_IMAGE="ciandtsoftware/percona:acquia-latest"
+DOCKER_IMAGE="ciandt/percona:acquia-latest"
 
 # run your container
 docker run \
@@ -100,12 +100,12 @@ Create a new folder and a Docker compose file with the content below;
 
 ```
 percona:
-  image: ciandtsoftware/percona:acquia-latest
+  image: ciandt/percona:acquia-latest
   container_name: percona
   env_file: ../conf/percona.local.env
 
 php:
-  image: ciandtsoftware/php:acquia-latest
+  image: ciandt/php:acquia-latest
   container_name: php
   env_file: ../conf/php.local.env
   links:
@@ -172,7 +172,7 @@ There are __two parts__ of the documentation.
 
 First, in the master branch, is this README.MD. It explains how this little scripts framework work and it is published on [Github page](https://github.com/ciandt-dev/docker-hub-percona).
 
-Second, in each image version there is an additional README.MD file that explains how to use that specific Docker image version itself. __*Latest version*__ is always the one seen on [Docker Hub page](https://hub.docker.com/r/ciandtsoftware/percona).
+Second, in each image version there is an additional README.MD file that explains how to use that specific Docker image version itself. __*Latest version*__ is always the one seen on [Docker Hub page](https://hub.docker.com/r/ciandt/percona).
 
 We strongly encourage reading both!
 
